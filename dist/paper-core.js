@@ -9,7 +9,7 @@
  *
  * All rights reserved.
  *
- * Date: Mon Dec 3 14:19:11 2018 +0100
+ * Date: Mon Dec 3 14:26:26 2018 +0100
  *
  ***
  *
@@ -12000,6 +12000,7 @@ var paper = function (self, undefined) {
 			groupDefaults = Base.set({}, itemDefaults, {
 				fontFamily: 'sans-serif',
 				fontWeight: 'normal',
+				fontStretch: 'normal',
 				fontSize: 12,
 				leading: null,
 				justification: 'left'
@@ -12016,6 +12017,7 @@ var paper = function (self, undefined) {
 				fontFamily: 9,
 				fontWeight: 9,
 				fontSize: 9,
+				fontStretch: 9,
 				font: 9,
 				leading: 9,
 				justification: 9
@@ -12201,7 +12203,10 @@ var paper = function (self, undefined) {
 
 			getFontStyle: function () {
 				var fontSize = this.getFontSize();
+				var fontStretch = this.getFontStretch();
+
 				return this.getFontWeight()
+					+ ' ' + fontStretch
 					+ ' ' + fontSize + (/[a-z]/i.test(fontSize + '') ? ' ' : 'px ')
 					+ this.getFontFamily();
 			},
@@ -14277,6 +14282,7 @@ var paper = function (self, undefined) {
 		fontFamily: ['font-family', 'string'],
 		fontWeight: ['font-weight', 'string'],
 		fontSize: ['font-size', 'number'],
+		fontStretch: ['font-stretch', 'string'],
 		justification: ['text-anchor', 'lookup', {
 			left: 'start',
 			center: 'middle',
@@ -14524,7 +14530,30 @@ var paper = function (self, undefined) {
 		function exportText(item) {
 			var node = SvgElement.create('text', getTransform(item._matrix, true),
 				formatter);
-			node.textContent = item._content;
+
+			// Codice Originale...
+			// node.textContent = item._content;
+			// return node;
+
+			// Modifica per gestire il multilinea...
+			for (var i = 0; i < item._lines.length; i++) {
+				var tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+				tspan.textContent = item._lines[i];
+				var dy = item.leading;
+
+				if (!tspan.textContent) {
+					// Se la riga è solo un ritorno a capo imposto il textcontent a un carattere unicode vuoto
+					// Unicode (U+2800)
+					tspan.textContent = String.fromCharCode(0x2800);
+				}
+
+				if (i === 0) dy = 0;
+				tspan.setAttributeNS(null, "x", node.getAttribute('x'));
+				tspan.setAttributeNS(null, "dy", dy);
+
+				node.appendChild(tspan);
+			}
+
 			return node;
 		}
 
